@@ -43,6 +43,11 @@ async function getUserByRegNumber(regNumber) {
   return db.users.find(u => u.regNumber === regNumber);
 }
 
+async function getUserByEmail(email) {
+  const db = await readDB();
+  return db.users.find(u => u.email === email) || null;
+}
+
 async function createUser(user) {
   const db = await readDB();
   const existing = db.users.find(u => u.regNumber === user.regNumber);
@@ -148,6 +153,7 @@ module.exports = {
   getUsers,
   getUserById,
   getUserByRegNumber,
+  getUserByEmail,
   createUser,
   updateUser,
   getProducts,

@@ -432,6 +432,51 @@ app.get('/api/health', (req, res) => {
   res.json({ status: true, message: 'ATBU Marketplace API is running', publicKey: PAYSTACK_PUBLIC });
 });
 
+// ==================== STARTUP SEED ====================
+const seedProducts = [
+  { id: 'prod-1', title: 'Engineering Textbook Set', price: 4500, image: '/trending_textbooks.jpg', category: 'Textbooks', seller: 'John D.', sellerId: 'user-1', location: 'Male Hostel A', description: 'Complete set of engineering textbooks for 300 level. Good condition, barely used.' },
+  { id: 'prod-2', title: 'Bluetooth Speaker', price: 8000, image: '/trending_speaker.jpg', category: 'Electronics', seller: 'Sarah M.', sellerId: 'user-2', location: 'Female Hostel B', description: 'JBL Bluetooth speaker with amazing bass. 10 hours battery life.' },
+  { id: 'prod-3', title: 'Room Rug', price: 6000, image: '/trending_rug.jpg', category: 'Room Essentials', seller: 'Mike O.', sellerId: 'user-3', location: 'Male Hostel C', description: 'Beautiful woven rug, perfect for hostel rooms. 4x6 feet.' },
+  { id: 'prod-4', title: 'Scientific Calculator', price: 3500, image: '/trending_calculator.jpg', category: 'Electronics', seller: 'Jane K.', sellerId: 'user-4', location: 'Female Hostel A', description: 'Casio fx-991ES PLUS. Perfect for engineering and science students.' },
+  { id: 'prod-5', title: 'Table Lamp', price: 2500, image: '/trending_lamp.jpg', category: 'Room Essentials', seller: 'Paul R.', sellerId: 'user-5', location: 'Male Hostel B', description: 'LED desk lamp with adjustable brightness. USB powered.' },
+  { id: 'prod-6', title: 'Laptop Stand', price: 5500, image: '/trending_laptop_stand.jpg', category: 'Electronics', seller: 'Lisa T.', sellerId: 'user-6', location: 'Female Hostel C', description: 'Aluminum laptop stand, adjustable height. Great for ergonomics.' },
+  { id: 'prod-7', title: 'Power Bank 20000mAh', price: 7000, image: '/trending_powerbank.jpg', category: 'Electronics', seller: 'David A.', sellerId: 'user-7', location: 'Male Hostel A', description: 'Fast charging power bank with digital display. Can charge laptop too.' },
+  { id: 'prod-8', title: 'Wireless Mouse', price: 3000, image: '/trending_mouse.jpg', category: 'Electronics', seller: 'Emma W.', sellerId: 'user-8', location: 'Female Hostel B', description: 'Logitech wireless mouse, 2 years old but works perfectly.' },
+];
+
+async function startupSeed() {
+  try {
+    const existing = await db.getProducts();
+    if (existing.length === 0) {
+      // Create a seed seller so products have a real sellerId
+      let seedSeller = await db.getUserByEmail('seed@atbu.edu');
+      if (!seedSeller) {
+        seedSeller = await db.createUser({
+          id: 'seed-seller-' + Date.now(),
+          firstName: 'Seed',
+          lastName: 'Seller',
+          regNumber: 'ATBU/SEED/001',
+          phone: '08000000000',
+          hostel: 'Male A',
+          roomNumber: '001',
+          bankCode: '057',
+          accountNumber: '0000000000',
+          email: 'seed@atbu.edu',
+          password: 'seed',
+          subaccountCode: null,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      for (const p of seedProducts) {
+        await db.createProduct({ ...p, sellerId: seedSeller.id, createdAt: new Date().toISOString() });
+      }
+      console.log(`✅ Seeded ${seedProducts.length} products with seller ${seedSeller.id}`);
+    }
+  } catch (err) {
+    console.log('⚠️ Could not seed products:', err.message);
+  }
+}
+
 // ==================== STATIC (PRODUCTION) ====================
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '..', 'dist')));
@@ -440,8 +485,9 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`\n🚀 ATBU Marketplace Server running on port ${PORT}`);
+  await startupSeed();
   console.log(`📍 Frontend URL: ${FRONTEND_URL}`);
   console.log(`🔑 Paystack mode: ${PAYSTACK_SECRET.startsWith('sk_test') ? 'TEST' : 'LIVE'}`);
   console.log(`💰 Platform fee: ${PLATFORM_FEE_PERCENT}%`);
